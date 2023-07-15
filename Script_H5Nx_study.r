@@ -84,7 +84,7 @@ for (i in 1:length(envVariableNames))
 if (savingPlots)
 	{
 		envVariableNames = unique(data_sources[,"variable_name_2"]); envVariableNames = envVariableNames[envVariableNames!=""]
-		envVariableNames = envVariableNames[!envVariableNames%in%c("distance_to_water","vaccination_in_china","urban_and_built_up_areas",)]; envVariables = list()
+		envVariableNames = envVariableNames[!envVariableNames%in%c("distance_to_water","vaccination_in_china","urban_and_built_up_areas")]; envVariables = list()
 		for (i in 1:length(envVariableNames))
 			{
 				envVariableName = envVariableNames[i]; substr(envVariableName,1,1) = toupper(substr(envVariableName,1,1))				
@@ -119,7 +119,7 @@ if (savingPlots)
 
 	# 1.4. Organising the environmental variables by sets
 
-data_sources = read.csv("Environmental_data/Original_rasters/Data_sources.csv", head=T, sep=";")
+data_sources = read.csv("Environmental_data/Data_sources.csv", head=T, sep=";")
 envVariables_list = list(); variables_sets = unique(data_sources[,"kind_of_variable"])
 for (i in 1:length(variables_sets))
 	{
@@ -136,7 +136,24 @@ for (i in 1:length(variables_sets))
 		envVariables_list[[i]] = envVariables
 	}
 
+# 2. Loading and expecting the occurrence records
 
+tab = read.csv("Occurrence_records/Dataset_06072023.csv", head=T, sep=";")
+serotype_summary = table(tab[,"serotype"])
+dates = ymd(tab[,"report_date"]); decimal_dates = decimal_date(dates)
+if (savingPlots)
+	{
+		pdf("Two_epi_curves.pdf", width=8, height=3); par(mfrow=c(2,1), oma=c(0,0,0.5,0.5), mar=c(1.3,1.3,0,0), lwd=0.2, col="gray30")
+		hist(decimal_dates[which(grepl("H5N1",tab[,"serotype"]))], breaks=length(unique(dates))/7, xlim=c(2015,2023), ylim=c(0,680), ann=F, axes=F, col="gray80", border=NA)
+		axis(side=1, pos=-30, lwd.tick=0.2, cex.axis=0.6, lwd=0.2, tck=-0.030, col.axis="gray30", mgp=c(0,-0.1,0), at=c(2015:2024))
+		axis(side=2, pos=2014.94, lwd.tick=0.2, cex.axis=0.6, lwd=0.2, tck=-0.03, col.axis="gray30", mgp=c(0,0.18,0), at=c(0,200,400,600,800))
+		title(ylab="H5N1 cases", cex.lab=0.7, mgp=c(0,0,0), col.lab="gray30")
+		hist(decimal_dates[which(grepl("H5",tab[,"serotype"]))], breaks=length(unique(dates))/7, xlim=c(2015,2023), ylim=c(0,680), ann=F, axes=F, col="gray80", border=NA)
+		axis(side=1, pos=-30, lwd.tick=0.2, cex.axis=0.6, lwd=0.2, tck=-0.030, col.axis="gray30", mgp=c(0,-0.1,0), at=c(2015:2024))
+		axis(side=2, pos=2014.94, lwd.tick=0.2, cex.axis=0.6, lwd=0.2, tck=-0.03, col.axis="gray30", mgp=c(0,0.18,0), at=c(0,200,400,600,800))
+		title(ylab="H5Nx cases", cex.lab=0.7, mgp=c(0,0,0), col.lab="gray30")
+		dev.off()
+	}
 
 #### PREVIOUS SCRIPT FOR THE BOMBUS STUDY ####
 
