@@ -1,5 +1,3 @@
-# Co-authors to include: Maria, Marie-Cécile, ??, Willy, Marius, Simon
-
 # TO DO:
 	# - computing and including a distance to water raster ??
 	# - trying the visualisation script of Jean ??
