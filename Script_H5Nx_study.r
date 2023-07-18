@@ -1,7 +1,3 @@
-# TO DO:
-	# - computing and including a distance to water raster ??
-	# - trying the visualisation script of Jean ??
-
 library(ade4)
 library(ape)
 library(blockCV)
@@ -28,7 +24,7 @@ library(seqinr)
 library(sp)
 library(vioplot)
 
-savingPlots = TRUE
+savingPlots = FALSE
 
 # 1. Preparation of the environmental rasters
 
@@ -77,9 +73,10 @@ if (!file.exists("Environmental_data/Prepared_rasters/Mask_raster_08.tif"))
 
 	# 1.2. Uniformising the extent and resolution of all rasters
 
+mask = raster("Environmental_data/Prepared_rasters/Mask_raster_08.tif")
 data_sources = read.csv("Environmental_data/Data_sources.csv", head=T, sep=";")
 envVariableNames = unique(data_sources[,"variable_name_2"]); envVariableNames = envVariableNames[envVariableNames!=""]
-envVariableNames = envVariableNames[!envVariableNames%in%c("distance_to_water","vaccination_in_china")]
+envVariableNames = envVariableNames[!envVariableNames%in%c("vaccination_in_china")]
 for (i in 1:length(envVariableNames))
 	{
 		if (!file.exists(paste0("Environmental_data/Prepared_rasters/",envVariableNames[i],".tif")))
@@ -88,7 +85,6 @@ for (i in 1:length(envVariableNames))
 				rast = crop(raster(paste0("Environmental_data/Original_rasters/",envVariableName,".tif")), extent(-180,180,-56,90))
 				if (round(res(rast)[1],5) == 0.00833)
 					{
-						mask = raster("Environmental_data/Prepared_rasters/Mask_raster_08.tif")
 						fun = data_sources[which(data_sources[,"variable_name_2"]==envVariableNames[i])[1],"aggregation_function"]
 						if (fun == "sum")
 							{
@@ -104,8 +100,8 @@ for (i in 1:length(envVariableNames))
 							{
 								rast = raster::aggregate(rast, 10, fun=mean, na.rm=T)
 							}
-						rast[is.na(mask)] = NA
 					}
+				rast[is.na(mask)] = NA
 				writeRaster(rast, paste0("Environmental_data/Prepared_rasters/",envVariableName,".tif"))
 			}
 	}
@@ -113,7 +109,7 @@ for (i in 1:length(envVariableNames))
 	# 1.3. Plotting all the environmental variables
 
 allEnvVariableNames = unique(data_sources[,"variable_name_2"]); allEnvVariableNames = allEnvVariableNames[allEnvVariableNames!=""]
-allEnvVariableNames = allEnvVariableNames[!allEnvVariableNames%in%c("distance_to_water","vaccination_in_china","urban_and_built_up_areas")]
+allEnvVariableNames = allEnvVariableNames[!allEnvVariableNames%in%c("vaccination_in_china","open_water_areas","urban_and_built_up_areas")]
 allEnvVariables = list()
 for (i in 1:length(allEnvVariableNames))
 	{
@@ -160,7 +156,7 @@ for (i in 1:length(variables_sets))
 		buffer2 = data_sources[,"variable_name_2"]
 		buffer2 = buffer2[which(data_sources[,"kind_of_variable"]==variables_sets[i])]
 		buffer2 = buffer2[which(buffer2!="")]
-		buffer2 = buffer2[!buffer2%in%c("distance_to_water","vaccination_in_china")]
+		buffer2 = buffer2[!buffer2%in%c("vaccination_in_china")]
 		for (j in 1:length(buffer2))
 			{		
 				envVariableName = buffer2[j]; substr(envVariableName,1,1) = toupper(substr(envVariableName,1,1))				
