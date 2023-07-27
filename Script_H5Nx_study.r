@@ -179,22 +179,31 @@ if (savingPlots)
 	{
 		pdf("Two_epi_curves.pdf", width=8, height=3); par(mfrow=c(2,1), oma=c(0,0,0.5,0.5), mar=c(1.3,1.3,0,0), lwd=0.2, col="gray30")
 		hist(decimal_dates[which(grepl("H5N1",tab[,"serotype"]))], breaks=length(unique(dates))/7, xlim=c(2015,2023), ylim=c(0,680), ann=F, axes=F, col="gray80", border=NA)
+		hist(decimal_dates[which(grepl("H5N1",tab[,"serotype"])&grepl("Wild",tab[,"bird_type"]))], breaks=length(unique(dates))/7, xlim=c(2015,2023), ylim=c(0,680), add=T, ann=F, axes=F, col="gray65", border=NA)
 		axis(side=1, pos=-30, lwd.tick=0.2, cex.axis=0.6, lwd=0.2, tck=-0.030, col.axis="gray30", mgp=c(0,-0.1,0), at=c(2015:2024))
 		axis(side=2, pos=2014.94, lwd.tick=0.2, cex.axis=0.6, lwd=0.2, tck=-0.03, col.axis="gray30", mgp=c(0,0.18,0), at=c(0,200,400,600,800))
 		title(ylab="H5N1 cases", cex.lab=0.7, mgp=c(0,0,0), col.lab="gray30")
 		hist(decimal_dates[which(grepl("H5",tab[,"serotype"]))], breaks=length(unique(dates))/7, xlim=c(2015,2023), ylim=c(0,680), ann=F, axes=F, col="gray80", border=NA)
+		hist(decimal_dates[which(grepl("H5",tab[,"serotype"])&grepl("Wild",tab[,"bird_type"]))], breaks=length(unique(dates))/7, xlim=c(2015,2023), ylim=c(0,680), add=T, ann=F, axes=F, col="gray65", border=NA)
 		axis(side=1, pos=-30, lwd.tick=0.2, cex.axis=0.6, lwd=0.2, tck=-0.030, col.axis="gray30", mgp=c(0,-0.1,0), at=c(2015:2024))
 		axis(side=2, pos=2014.94, lwd.tick=0.2, cex.axis=0.6, lwd=0.2, tck=-0.03, col.axis="gray30", mgp=c(0,0.18,0), at=c(0,200,400,600,800))
 		title(ylab="H5Nx cases", cex.lab=0.7, mgp=c(0,0,0), col.lab="gray30")
 		dev.off()
 	}
-datasets = list() # H5N1 and H5Nx, before and after the start of 2020
+datasets = list() # H5N1 and H5Nx, before and after the start of 2020, wild and domestic cases
 for (i in 1:length(serotypes))
 	{
+		sub1 = tab[which(grepl(serotypes[i],tab[,"serotype"])),]
 		for (j in 1:2)
 			{
-				if (j == 1) datasets[[length(datasets)+1]] = tab[which((grepl(serotypes[i],tab[,"serotype"]))&(decimal_dates<2020)),]
-				if (j == 2) datasets[[length(datasets)+1]] = tab[which((grepl(serotypes[i],tab[,"serotype"]))&(decimal_dates>=2020)),]
+				if (j == 1) sub2 = sub1[which(decimal_dates<2020),]
+				if (j == 2) sub2 = sub1[which(decimal_dates>=2020),]
+				for (k in 1:2)
+					{
+						if (k == 1) sub3 = sub2[which(sub2[,"bird_type"]=="Wild"),]
+						if (k == 2) sub3 = sub2[which(sub2[,"bird_type"]=="Domestic"),]
+						datasets[[length(datasets)+1]] = sub3
+					}
 			}
 	}
 
@@ -288,7 +297,7 @@ foldSelection = function(observations, selectedPoints)
 plottingCorrelogram = FALSE
 if (plottingCorrelogram == TRUE)
 	{
-		for (i in 1:length(dataframes)) # distances from which the correlation values reach 0: 2500, ~1750, 2000, 2000
+		for (i in 1:length(dataframes)) # distances from which the correlation values reach 0: ~2000, ~1750, 2000, 2000
 			{
 				buffer = dataframes[[i]][sample(1:dim(dataframes[[i]])[1],5000,replace=F),]
 				correlogram = ncf::correlog(buffer[,"longitude"], buffer[,"latitude"], buffer[,"response"], na.rm=T, increment=100, resamp=0, latlon=T)
@@ -305,7 +314,12 @@ if (plottingCorrelogram == TRUE)
 	}
 newAnalyses = TRUE
 if (newAnalyses == TRUE) { for (t in 1:length(variables_sets)) { for (i in 1:length(datasets)) {
-if (!file.exists(paste0("BRT_projection_files/BRT_models/Variables_set_",t,"_dataset_",i,"_CCV_SCV_AUCs.csv"))) {
+		if (!file.exists(paste0("BRT_projection_files/BRT_models/Variables_set_",t,"_dataset_",i,"_CCV_SCV_AUCs.csv")))
+			{
+				AUCs = matrix(nrow=nberOfReplicates, ncol=3); colnames(AUCs) = c("CCV_AUC","SCV1_AUC","SCV2_AUC")
+			}	else	{
+				AUCs = read.csv(paste0("BRT_projection_files/BRT_models/Variables_set_",t,"_dataset_",i,"_CCV_SCV_AUCs.csv"), head=T)
+			}
 		mask = raster("Environmental_data/Prepared_rasters/Mask_raster_08.tif")
 		data = dataframes[[i]]; envVariableColNames = colnames(data)[4:dim(data)[2]]
 		variables_to_keep = envVariableColNames[which(envVariableColNames%in%envVariableNames[[t]])]
@@ -343,12 +357,11 @@ if (!file.exists(paste0("BRT_projection_files/BRT_models/Variables_set_",t,"_dat
 		brt_model_ccvs = list() # classic cross-validations (CCVs)
 		brt_model_scv1 = list() # spatial cross-validations 1 (SCV1)
 		brt_model_scv2 = list() # spatial cross-validations 2 (SCV2)
-		AUCs = matrix(nrow=nberOfReplicates, ncol=3); colnames(AUCs) = c("CCV_AUC","SCV1_AUC","SCV2_AUC")
 		for (j in 1:nberOfReplicates)
 			{
 				# BRT with classic (standard) cross-validation (CCV):
 				pdf(file=paste0("BRT_projection_files/BRT_models/Variables_set_",t,"_dataset_",i,"_CCV_replicate_",j,".pdf"))
-				n.trees = 100; learning.rate = 0.01; step.size = 10; fold.vector = NULL; worked = FALSE
+				n.folds = 5; n.trees = 100; learning.rate = 0.01; step.size = 10; fold.vector = NULL; worked = FALSE
 				while (worked == FALSE)
 					{
 						trycatch = tryCatch(
@@ -363,19 +376,20 @@ if (!file.exists(paste0("BRT_projection_files/BRT_models/Variables_set_",t,"_dat
 						if (length(brt_model_ccvs) == j) worked = TRUE
 					}
 				dev.off()
+				saveRDS(brt_model_ccvs[[j]], paste0("BRT_projection_files/BRT_models/Variables_set_",t,"_dataset_",i,"_CCV_replicate_",j,".rds"))
 				AUCs[j,1] = brt_model_ccvs[[j]]$cv.statistics$discrimination.mean # Mean test AUC (from the AUCs computed on each fold tested as test data in the CCV)
 				
 				# BRT with spatial (geographic) cross-validation (SCV) based on the folds generation of Dhingra, Artois et al. (2016, eLife):
-				folds_with_similar_sizes = FALSE; c = 0
+				n.folds = 5; c = 0; folds_with_similar_sizes = FALSE
 				while (folds_with_similar_sizes == FALSE) # while loop to select a partition where the x folds gather at least
 					{									  # a proportion = (1/(x+1)) of the total number of presence points
 						data_presence = data[which(data[,"response"]==1),]; c = c+1; # print(c)
-						fivePoints = samplingPtsMinDist(data_presence[,c("longitude","latitude")], minDist=200, nberOfPoints=n.folds)
-						fold.vector = foldSelection(data[,c("longitude","latitude")], selectedPoints=data_presence[fivePoints,1:2])
+						points = samplingPtsMinDist(data_presence[,c("longitude","latitude")], minDist=500, nberOfPoints=n.folds)
+						fold.vector = foldSelection(data[,c("longitude","latitude")], selectedPoints=data_presence[points,c("longitude","latitude")])
 						fold.vector_presences = fold.vector[which(data[,"response"]==1)]
 						counts = hist(fold.vector_presences, plot=F)$counts
 						props = counts[which(counts > 0)]/sum(counts); print(round(props,2))
-						if ((length(props) == n.folds)&(min(props) > (1/(n.folds*5)))) folds_with_similar_sizes = TRUE
+						if ((length(props) == n.folds)&(min(props) > (1/(2*n.folds)))) folds_with_similar_sizes = TRUE
 					}
 				if (showingFoldsPlot == TRUE)
 					{
@@ -386,7 +400,7 @@ if (!file.exists(paste0("BRT_projection_files/BRT_models/Variables_set_",t,"_dat
 						points(data[,c("longitude","latitude")], col=cols, pch=pchs, cex=cexs, lwd=0.7)
 					}
 				pdf(file=paste0("BRT_projection_files/BRT_models/Variables_set_",t,"_dataset_",i,"_SCV1_replicate_",j,".pdf"))
-				n.trees = 100; learning.rate = 0.01; step.size = 10; worked = FALSE
+				n.trees = 100; learning.rate = 0.001; step.size = 5; worked = FALSE
 				while (worked == FALSE)
 					{
 						trycatch = tryCatch(
@@ -401,60 +415,53 @@ if (!file.exists(paste0("BRT_projection_files/BRT_models/Variables_set_",t,"_dat
 						if (length(brt_model_scv1) == j) worked = TRUE
 					}
 				dev.off()
+				saveRDS(brt_model_scv1[[j]], paste0("BRT_projection_files/BRT_models/Variables_set_",t,"_dataset_",i,"_SCV1_replicate_",j,".rds"))
 				AUCs[j,"SCV1_AUC"] = brt_model_scv1[[j]]$cv.statistics$discrimination.mean
 					# Mean test AUC (from the AUCs computed on each fold tested as test data in the SCV)		
 				
 				# BRT with spatial (geographic) cross-validation (SCV) based on the blocks generation of Valavi et al. (2019, MEE):
 				spdf = SpatialPointsDataFrame(data[c("longitude","latitude")], data[,c(1,4:dim(data)[2])], proj4string=crs(mask))
-				worked = FALSE
+				n.folds = 5; worked = FALSE
 				while (worked == FALSE)
 					{
 						trycatch = tryCatch(
 							{
 								myblocks = NULL
-								myblocks = spatialBlock(spdf, species="response", rasterLayer=mask, k=n.folds, theRange=theRanges[1], selection="random")
+								# myblocks = spatialBlock(spdf, species="response", rasterLayer=mask, k=n.folds, theRange=theRanges[1], selection="random")
+								myblocks = cv_spatial(x=spdf, column="response", r=mask, size=theRanges[1], k=n.folds, hexagon=F, selection="random")
 							},	error = function(cond) {
 							},	finally = {
 							})
 						if (!is.null(myblocks)) worked = TRUE
 					}
-				fold.vector = myblocks$foldID; n.trees = 100; learning.rate = 0.01; step.size = 10
+				fold.vector = myblocks$folds_ids; n.trees = 100; learning.rate = 0.01; step.size = 10
 				pdf(file=paste0("BRT_projection_files/BRT_models/Variables_set_",t,"_dataset_",i,"_SCV2_replicate_",j,".pdf"))
 				brt_model_scv2[[j]] = gbm.step(data, gbm.x, gbm.y, offset, fold.vector, tree.complexity, learning.rate, bag.fraction, site.weights,
 					var.monotone, n.folds, prev.stratify, family, n.trees, step.size, max.trees, tolerance.method, tolerance, plot.main, plot.folds,
 					verbose, silent, keep.fold.models, keep.fold.vector, keep.fold.fit); # summary(brt_model_scv) # gbm.plot(brt_model_scv, plot.layout=c(4,4))
 				dev.off()
+				saveRDS(brt_model_scv2[[j]], paste0("BRT_projection_files/BRT_models/Variables_set_",t,"_dataset_",i,"_SCV2_replicate_",j,".rds"))
 				AUCs[j,"SCV2_AUC"] = brt_model_scv2[[j]]$cv.statistics$discrimination.mean
 					# Mean test AUC (from the AUCs computed on each fold tested as test data in the SCV)
 			}
-		saveRDS(brt_model_ccvs, paste0("BRT_projection_files/BRT_models/Variables_set_",t,"_dataset_",i,"_BRT_models_CCV.rds"))
-		saveRDS(brt_model_scv1, paste0("BRT_projection_files/BRT_models/Variables_set_",t,"_dataset_",i,"_BRT_models_SCV1.rds"))
-		saveRDS(brt_model_scv2, paste0("BRT_projection_files/BRT_models/Variables_set_",t,"_dataset_",i,"_BRT_models_SCV2.rds"))
 		write.csv(AUCs, paste0("BRT_projection_files/BRT_models/Variables_set_",t,"_dataset_",i,"_CCV_SCV_AUCs.csv"), row.names=F, quote=F)
-}}}}
-SCV2_AUC_values = matrix(nrow=10, ncol=4*4)
-colnames(SCV2_AUC_values) = c("H5N1_t1_set1","H5N1_t1_set2","H5N1_t1_set3","H5N1_t1_set4",
-							  "H5N1_t2_set1","H5N1_t2_set2","H5N1_t2_set3","H5N1_t2_set4",
-							  "H5Nx_t1_set1","H5Nx_t1_set2","H5Nx_t1_set3","H5Nx_t1_set4",
-							  "H5Nx_t2_set1","H5Nx_t2_set2","H5Nx_t2_set3","H5Nx_t2_set4")
-for (t in 1:length(periods))
+}}}
+for (t in 1:length(variables_sets))
 	{
-		for (i in 1:dim(species)[1])
+		AUC_values = matrix(nrow=length(datasets), ncol=3)
+		row.names(AUC_values) = c("H5N1_t1_wild","H5N1_t1_domestic","H5N1_t2_wild","H5N1_t2_domestic",
+								  "H5N1_t1_wild","H5N1_t1_domestic","H5N1_t2_wild","H5N1_t2_domestic")
+		colnames(AUC_values) = c("CCV","SCV1","SCV2")		
+		for (i in 1:length(datasets))
 			{
 				tab = read.csv(paste0("BRT_projection_files/BRT_models/Variables_set_",t,"_dataset_",i,"_CCV_SCV_AUCs.csv"), head=T)
 				for (j in 1:dim(tab)[2])
 					{
-						SCV2_AUC_values[i,((t-1)*3)+j] = paste0(round(mean(tab[,j]),3)," (",round(sd(tab[,j]),3),")")
+						AUC_values[i,j] = paste0(round(mean(tab[,j]),3)," (",round(sd(tab[,j]),3),")")
 					}
 			}
+		if (!file.exists(paste0("AUC_values_set",t,".csv"))) write.csv(AUC_values, paste0("AUC_values_set",t,".csv"), quote=F)
 	}
-if (!file.exists(paste0("SCV2_AUC_values.csv")))
-	{
-		write.csv(AUC_values, "SCV2_AUC_values.csv", quote=F)
-	}
-SCV2_AUC_values = read.csv("SCV2_AUC_values.csv", head=T)
-
-
 
 
 
