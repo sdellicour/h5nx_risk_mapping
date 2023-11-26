@@ -15,6 +15,7 @@ library(ncf)
 library(picante)
 library(pgirmess)
 library(phytools)
+library(pROC)
 library(RColorBrewer)
 library(raster)
 library(rgdal)
@@ -31,8 +32,9 @@ library(vioplot)
 # 4. All boosted regression trees (BRT) analyses
 # 5. Comparing all the AUC support and SSB values
 # 6. Computing the relative influence (RI) values
-# 7. Comparing the response curves and RI values
-# 8. Projections of H5 ecological suitabilities
+# 7. Comparing the predictive capacities (with AUC)
+# 8. Comparing the response curves and RI values
+# 9. Projections of H5 ecological suitabilities
 
 savingPlots = FALSE; showingPlots = FALSE; writingFiles = FALSE
 
@@ -804,7 +806,7 @@ if (savingPlots)
 # 6. Computing the relative influence (RI) values
 
 dataset_names = c("H5N1_t1_wild","H5N1_t1_domestic","H5N1_t2_wild","H5N1_t2_domestic",
-				  "H5Nx_t1_wild","H5Nx_t1_domestic","H5Nx_t2_wild","H5Nx_t2_domestic")s
+				  "H5Nx_t1_wild","H5Nx_t1_domestic","H5Nx_t2_wild","H5Nx_t2_domestic")
 if (writingFiles)
 	{
 		for (t in 1:length(variables_sets))
@@ -877,7 +879,57 @@ if (writingFiles)
 	}
 selectedModel = "SCV1"; selected_variables_sets = c(5,6,5,6,5,6,5,6)
 
-# 7. Comparing the response curves and RI values
+# 7. Comparing the predictive capacities (with AUC)
+
+newAnalyses = FALSE
+if (newAnalyses == TRUE)
+	{
+		AUC_comparison = matrix(nrow=nberOfReplicates, ncol=9)
+		colnames(AUC_comparison) = c("AUC_t1_t1_H5N1_domestic","AUC_t2_t2_H5N1_domestic","AUC_t1_t2_H5N1_domestic",
+									 "AUC_t1_t1_H5Nx_wild","AUC_t2_t2_H5Nx_wild","AUC_t1_t2_H5Nx_wild",
+									 "AUC_t1_t1_H5Nx_domestic","AUC_t2_t2_H5Nx_domestic","AUC_t1_t2_H5Nx_domestic")
+		for (j in 1:nberOfReplicates)
+			{
+				c = 0
+				for (i in c(2,5,6))
+					{
+						I = i; brt_model_1 = readRDS(paste0("All_the_BRT_models/Variables_set_",selected_variables_sets[I],"_dataset_",I,"_",selectedModel,"_replicate_",j,".rds"))
+						I = i+2; brt_model_2 = readRDS(paste0("All_the_BRT_models/Variables_set_",selected_variables_sets[I],"_dataset_",I,"_",selectedModel,"_replicate_",j,".rds"))
+						df = brt_model_1$gbm.call$dataframe; responses = df$response
+						df = brt_model_1$gbm.call$dataframe; data = df[,4:dim(df)[2]]
+						n.trees = brt_model_1$gbm.call$best.trees; type = "response"; single.tree = FALSE
+						prediction = predict.gbm(brt_model_1, data, n.trees, type, single.tree)
+						c = c+1; AUC_comparison[j,c] = gbm.roc.area(obs=responses, pred=prediction)
+						df = brt_model_2$gbm.call$dataframe; responses = df$response
+						df = brt_model_2$gbm.call$dataframe; data = df[,4:dim(df)[2]]
+						n.trees = brt_model_2$gbm.call$best.trees; type = "response"; single.tree = FALSE
+						prediction = predict.gbm(brt_model_2, data, n.trees, type, single.tree)
+						c = c+1; AUC_comparison[j,c] = gbm.roc.area(obs=responses, pred=prediction)
+						df = brt_model_2$gbm.call$dataframe; responses = df$response
+						df = brt_model_2$gbm.call$dataframe; data = df[,4:dim(df)[2]]
+						n.trees = brt_model_1$gbm.call$best.trees; type = "response"; single.tree = FALSE
+						prediction = predict.gbm(brt_model_1, data, n.trees, type, single.tree)
+						c = c+1; AUC_comparison[j,c] = gbm.roc.area(obs=responses, pred=prediction)
+					}
+			}
+		write.csv(round(AUC_comparison,3), "AUC_comparison_NEW.csv", row.names=F, quote=F)
+		for (i in 1:dim(AUC_comparison)[2])
+			{
+				medianV = median(AUC_comparison[,i]); minV = min(AUC_comparison[,i]); maxV = max(AUC_comparison[,i])
+				cat(paste0("\t\t\t\t# ",colnames(AUC_comparison)[i],": ",round(medianV,2)," [",round(minV,2),"-",round(maxV,2),"]\n"))				
+			}
+				# AUC_t1_t1_H5N1_domestic:	0.90 [0.89-0.91]
+				# AUC_t2_t2_H5N1_domestic:	0.79 [0.79-0.80]
+				# AUC_t1_t2_H5N1_domestic:	0.70 [0.69-0.71]
+				# AUC_t1_t1_H5Nx_wild: 		0.86 [0.85-0.87]
+				# AUC_t2_t2_H5Nx_wild:		0.85 [0.84-0.85]
+				# AUC_t1_t2_H5Nx_wild:		0.77 [0.77-0.78]
+				# AUC_t1_t1_H5Nx_domestic:	0.83 [0.82-0.85]
+				# AUC_t2_t2_H5Nx_domestic:	0.80 [0.80-0.81]
+				# AUC_t1_t2_H5Nx_domestic:	0.76 [0.75-0.77]
+	}
+
+# 8. Comparing the response curves and RI values
 
 newAnalyses = FALSE
 if (newAnalyses == TRUE)
@@ -1050,7 +1102,7 @@ if (newAnalyses == TRUE)
 		dev.off()
 	}
 
-# 8. Projections of H5 ecological suitabilities
+# 9. Projections of H5 ecological suitabilities
 
 predictions1 = list()
 for (i in 2:length(datasets2))
