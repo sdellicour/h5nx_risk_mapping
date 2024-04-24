@@ -244,7 +244,7 @@ for (i in 1:length(buffer2))
 	}
 envVariables[[length(envVariables)+1]] = buffer1; envVariableNames[[length(envVariableNames)+1]] = buffer2
 
-# 2. Loading and expecting the occurrence records
+# 2. Loading and inspecting the occurrence records
 
 tab = read.csv("Occurrence_records/Dataset_06072023.csv", head=T, sep=";")
 v_mask = raster::extract(mask, SpatialPoints(tab[,c("longitude","latitude")]))
@@ -778,7 +778,7 @@ if (savingPlots)
 AUC_values_SC1 = list(); AUC_values_SC2 = list()
 for (i in 2:length(datasets2))
 	{
-		for (t in 1:length(variables_sets))
+		for (t in 1:4) # length(variables_sets)
 			{
 				tab = read.csv(paste0("All_the_BRT_models/Variables_set_",t,"_dataset_",i,"_CCV_SCV_AUCs.csv"), head=T)
 				AUC_values_SC1[[length(AUC_values_SC1)+1]] = tab[,"SCV1_AUC"]
@@ -805,6 +805,7 @@ if (savingPlots)
 
 # 6. Computing the relative influence (RI) values
 
+selectedModel = "SCV1"; selected_variables_sets = c(2,4,2,4,2,4,2,4)
 dataset_names = c("H5N1_t1_wild","H5N1_t1_domestic","H5N1_t2_wild","H5N1_t2_domestic",
 				  "H5Nx_t1_wild","H5Nx_t1_domestic","H5Nx_t2_wild","H5Nx_t2_domestic")
 if (writingFiles)
@@ -877,7 +878,6 @@ if (writingFiles)
 			}
 		write.csv(RIs, paste0("Table_S1_RIs_D.csv"), quote=F)
 	}
-selectedModel = "SCV1"; selected_variables_sets = c(5,6,5,6,5,6,5,6)
 
 # 7. Comparing the predictive capacities (with AUC)
 
@@ -918,15 +918,15 @@ if (newAnalyses == TRUE)
 				medianV = median(AUC_comparison[,i]); minV = min(AUC_comparison[,i]); maxV = max(AUC_comparison[,i])
 				cat(paste0("\t\t\t\t# ",colnames(AUC_comparison)[i],": ",round(medianV,2)," [",round(minV,2),"-",round(maxV,2),"]\n"))				
 			}
-				# AUC_t1_t1_H5N1_domestic:	0.90 [0.89-0.91]
-				# AUC_t2_t2_H5N1_domestic:	0.79 [0.79-0.80]
-				# AUC_t1_t2_H5N1_domestic:	0.70 [0.69-0.71]
-				# AUC_t1_t1_H5Nx_wild: 		0.86 [0.85-0.87]
-				# AUC_t2_t2_H5Nx_wild:		0.85 [0.84-0.85]
-				# AUC_t1_t2_H5Nx_wild:		0.77 [0.77-0.78]
-				# AUC_t1_t1_H5Nx_domestic:	0.83 [0.82-0.85]
-				# AUC_t2_t2_H5Nx_domestic:	0.80 [0.80-0.81]
-				# AUC_t1_t2_H5Nx_domestic:	0.76 [0.75-0.77]
+				# AUC_t1_t1_H5N1_domestic:	0.89 [0.89-0.90]
+				# AUC_t2_t2_H5N1_domestic:	0.79 [0.77-0.80]
+				# AUC_t1_t2_H5N1_domestic:	0.70 [0.70-0.71]
+				# AUC_t1_t1_H5Nx_wild: 		0.84 [0.83-0.84]
+				# AUC_t2_t2_H5Nx_wild:		0.82 [0.81-0.82]
+				# AUC_t1_t2_H5Nx_wild:		0.77 [0.77-0.77]
+				# AUC_t1_t1_H5Nx_domestic:	0.83 [0.82-0.83]
+				# AUC_t2_t2_H5Nx_domestic:	0.78 [0.78-0.80]
+				# AUC_t1_t2_H5Nx_domestic:	0.75 [0.74-0.76]
 	}
 
 # 8. Comparing the response curves and RI values
@@ -1009,20 +1009,20 @@ if (newAnalyses == TRUE)
 							}
 						predictions1[[i]] = predictions2; dfs1[[i]] = dfs2
 					}
-				selected_variables_wild_birds = c("extensive_chicken_population_density_2015_(log)",
-												  "intensive_chicken_population_density_2015_(log)",
-												  "human_population_density_2020_(log)",
+				selected_variables_wild_birds = c("deciduous_broadleaf_trees",
+												  "mixed_and_other_trees",
+												  "herbaceous_vegetation",
+												  "cultivated_and_managed_vegetation",
 												  "urban_and_built_up_areas",
 												  "open_water_areas",
-												  "day_LST_amplitude_bi_annual",
-												  "precipitation_February")
+												  "distance_to_water")
 				selected_variables_domestic_birds = c("duck_population_density_2010_(log)",
+												  "extensive_chicken_population_density_2015_(log)",
 												  "intensive_chicken_population_density_2015_(log)",
 												  "human_population_density_2020_(log)",
 												  "cultivated_and_managed_vegetation",
-												  "urban_and_built_up_areas",
-												  "day_LST_annual_mean",
-												  "humidity_April")
+												  "open_water_areas",
+												  "day_LST_annual_mean")
 				RIs = read.csv(paste0("RI_values_set_",selected_variables_sets[i],".csv"), head=T)
 				pdf(paste0("Response_curves_NEW",h,".pdf"), width=7.5, height=3.5)
 				par(mfrow=c(4,7), oma=c(0.5,0.5,1,1), mar=c(1.2,1.2,0.2,0.2), lwd=0.2, col="gray30")
@@ -1059,47 +1059,6 @@ if (newAnalyses == TRUE)
 					}
 				dev.off()
 			}
-		cols1 = list(); cols2 = list(); ltys = c(2,1,2,1)
-		cols1[[1]] = rgb(250,165,33,255,maxColorValue=255); cols2[[1]] = rgb(250,165,33,100,maxColorValue=255) # orange (H5N1)
-		cols1[[2]] = rgb(250,165,33,255,maxColorValue=255); cols2[[2]] = rgb(250,165,33,100,maxColorValue=255) # orange (H5N1)
-		cols1[[3]] = rgb(70,118,187,255,maxColorValue=255); cols2[[3]] = rgb(70,118,187,100,maxColorValue=255) # blue (H5NX)
-		cols1[[4]] = rgb(70,118,187,255,maxColorValue=255); cols2[[4]] = rgb(70,118,187,100,maxColorValue=255) # blue (H5NX)
-		cols1[[5]] = rgb(222,67,39,255,maxColorValue=255); cols2[[5]] = rgb(222,67,39,100,maxColorValue=255) # red
-		cols1[[6]] = rgb(136,86,167,255,maxColorValue=255); cols2[[6]] = rgb(136,86,167,100,maxColorValue=255) # purple
-		selected_variables_domestic_birds = c("duck_population_density_2010_log","intensive_chicken_population_density_2015_log","human_population_density_2020_log",
-											  "cultivated_and_managed_vegetation","day_LST_annual_mean","humidity_October")
-											# selected variables = environmental variables for which at least one averaged RI value is at least equal to 10%
-		pdf(paste0("Selected_curves_NEW.pdf"), width=7.5, height=1.3); jj = 0
-		par(mfrow=c(1,6), oma=c(1,1,1,1), mar=c(0.7,1.0,1.0,0.2), lwd=0.2, col="gray30")
-		for (j in 1:length(envVariableNames[[selected_variables_sets[i]]]))
-			{
-				if (gsub("\\(","",gsub("\\)","",envVariableNames[[selected_variables_sets[i]]][j]))%in%selected_variables_domestic_birds)
-					{
-						jj = jj+1; ii = 0	
-						for (i in c(2,4,6,8))
-							{
-								ii = ii+1
-								for (k in 1:length(predictions1[[i]][[j]]))
-									{
-										if ((ii == 1)&(k == 1))
-											{
-												plot(dfs1[[i]][[j]][,gsub("\\(","",gsub("\\)","",envVariableNames[[selected_variables_sets[i]]][j]))], predictions1[[i]][[j]][[k]],
-													 col=cols1[[ii]], ann=F, axes=F, lwd=0.2, type="l", lty=ltys[ii], xlim=c(minMaxXValues[j,1],minMaxXValues[j,2]), ylim=c(0.05,0.80))
-											}	else	{
-												lines(dfs1[[i]][[j]][,gsub("\\(","",gsub("\\)","",envVariableNames[[selected_variables_sets[i]]][j]))], predictions1[[i]][[j]][[k]],
-													  col=cols1[[ii]], lwd=0.2, lty=ltys[ii])
-											}
-									}
-							}
-						RI_text = paste0(RIs[j,4]," % (",RIs[j,2]," %), ",RIs[j,8]," % (",RIs[j,6]," %)")
-						box(lwd=0.2, col="gray30"); mtext(RI_text, line=0.3, cex=0.45, col="gray30")
-						axis(side=1, lwd.tick=0.2, cex.axis=0.6, lwd=0, tck=-0.040, col.axis="gray30", mgp=c(0,0.00,0))
-						if (jj == 1) axis(side=2, lwd.tick=0.2, cex.axis=0.6, lwd=0, tck=-0.040, col.axis="gray30", mgp=c(0,0.27,0))
-						if (jj == 1) title(ylab="predicted values", cex.lab=0.7, mgp=c(1.3,0,0), col.lab="gray30")
-						title(xlab=gsub("_"," ",envVariableNames[[selected_variables_sets[i]]][j]), cex.lab=0.7, mgp=c(0.9,0,0), col.lab="gray30")
-					}
-			}
-		dev.off()
 	}
 
 # 9. Projections of H5 ecological suitabilities
