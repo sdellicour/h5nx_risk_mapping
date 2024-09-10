@@ -1090,7 +1090,7 @@ for (i in 2:length(datasets2))
 	{	
 		predictions1[[i]] = crop(raster(paste0("All_the_BRT_models/Variables_set_",selected_variables_sets[i],"_dataset_",i,"_",selectedModel,"_average.asc")), extent(-170,180,-90,90))
 	}
-colourScale = rev(colorRampPalette(brewer.pal(11,"RdYlBu"))(14)[2:12])[c(1:4,7:8,8,9,9,10)]
+colourScale = rev(colorRampPalette(brewer.pal(11,"RdYlBu"))(14)[2:12])[c(1:4,7,7,8,8,9,9,10,10)]
 mask_cropped = crop(mask, extent(-170,180,-90,90)); plottingPresencePoints = TRUE; plottingPresencePoints = FALSE
 coast_lines = gSimplify(crop(shapefile("Environmental_data/NaturalEarth_files/Coastline_borders.shp"), extent(-170,180,-56,90)), 0.01)
 dataset_names = c("H5N1\nwild birds\n< 2020","H5N1\ndomestic birds\n< 2020","H5N1\nwild birds\n> 2020","H5N1\ndomestic birds\n> 2020",
@@ -1113,8 +1113,8 @@ for (i in c(3,5,7,2,4,6,8))
 				prediction = predictions1[[i]]
 				prediction[which(prediction[]<minValue)] = minValue
 				prediction[which(prediction[]>maxValue)] = maxValue
-				index1 = (((min(prediction[],na.rm=T)-minValue)/(maxValue-minValue))*10)+1
-				index2 = (((max(prediction[],na.rm=T)-minValue)/(maxValue-minValue))*10)+1
+				index1 = (((min(prediction[],na.rm=T)-minValue)/(maxValue-minValue))*11)+1
+				index2 = (((max(prediction[],na.rm=T)-minValue)/(maxValue-minValue))*11)+1
 				cols = colourScale[index1:index2]
 				plot(prediction, ann=F, axes=F, box=F, legend=F, col=cols)
 				plot(coast_lines, lwd=0.1, col="gray60", add=T)
@@ -1144,8 +1144,8 @@ for (i in c(3,5,7))
 		prediction = predictions1[[i]]
 		prediction[which(prediction[]<minValue)] = minValue
 		prediction[which(prediction[]>maxValue)] = maxValue
-		index1 = (((min(prediction[],na.rm=T)-minValue)/(maxValue-minValue))*10)+1
-		index2 = (((max(prediction[],na.rm=T)-minValue)/(maxValue-minValue))*10)+1
+		index1 = (((min(prediction[],na.rm=T)-minValue)/(maxValue-minValue))*11)+1
+		index2 = (((max(prediction[],na.rm=T)-minValue)/(maxValue-minValue))*11)+1
 		cols = colourScale[index1:index2]
 		plot(prediction, ann=F, axes=F, box=F, legend=F, col=cols)
 		plot(coast_lines, lwd=0.1, col="gray60", add=T)
@@ -1173,12 +1173,46 @@ for (i in c(2,4,6,8))
 		prediction = predictions1[[i]]
 		prediction[which(prediction[]<minValue)] = minValue
 		prediction[which(prediction[]>maxValue)] = maxValue
-		index1 = (((min(prediction[],na.rm=T)-minValue)/(maxValue-minValue))*10)+1
-		index2 = (((max(prediction[],na.rm=T)-minValue)/(maxValue-minValue))*10)+1
+		index1 = (((min(prediction[],na.rm=T)-minValue)/(maxValue-minValue))*11)+1
+		index2 = (((max(prediction[],na.rm=T)-minValue)/(maxValue-minValue))*11)+1
 		cols = colourScale[index1:index2]
 		plot(prediction, ann=F, axes=F, box=F, legend=F, col=cols)
 		plot(coast_lines, lwd=0.1, col="gray60", add=T)
 		if (i == 8)
+			{
+				legend_raster = raster(as.matrix(c(minValue,maxValue)))
+				plot(legend_raster, legend.only=T, add=T, col=colourScale, legend.width=0.5, alpha=1, legend.shrink=0.3, smallplot=c(0.910,0.925,0.00,0.55),
+					 horizontal=F, legend.args=list(text="", cex=0.8, line=0.5, col.axis="gray30", col.lab="gray30", col="gray30"),
+					 axis.args=list(cex.axis=0.9, lwd=0, lwd.tick=0.2, tck=-0.8, line=0, mgp=c(0,0.6,0), col.tick="gray30", col.axis="gray30", col.lab="gray30", col="gray30"))
+			}
+	}
+dev.off()
+pdf(paste0("Comparisons_NEW3.pdf"), width=7.5, height=6.0) # dev.new(width=7.5, height=6.0)
+par(mfrow=c(4,2), oma=c(1,1,1,1), mar=c(0,0,0,0), mgp=c(0,0,0), lwd=0.2, col="gray30")
+for (i in c(4,8))
+	{
+		if (i %in% c(1,3,5,7)) { minValue = 0.05; maxValue = 0.50 }
+		if (i %in% c(2,4,6,8)) { minValue = 0.05; maxValue = 0.50 }
+		if (i == 4) raster_Dhingra = raster("Dhingra_et_al_ENMs/Figure_4_raster_H5N1.tif")
+		if (i == 8) raster_Dhingra = raster("Dhingra_et_al_ENMs/Figure_4_raster_H5Nx.tif")
+		raster_Dhingra[which(raster_Dhingra[]<minValue)] = minValue
+		raster_Dhingra[which(raster_Dhingra[]>maxValue)] = maxValue
+		index1 = (((min(raster_Dhingra[],na.rm=T)-minValue)/(maxValue-minValue))*11)+1
+		index2 = (((max(raster_Dhingra[],na.rm=T)-minValue)/(maxValue-minValue))*11)+1
+		cols = colourScale[index1:index2]
+		plot(raster_Dhingra, ann=F, axes=F, box=F, legend=F, col=cols)
+		plot(coast_lines, lwd=0.1, col="gray60", add=T)
+		mtext(gsub("> 2020","< 2016",dataset_names[i]), at=-170, line=-10, adj=0, cex=0.6, col="gray30")
+		prediction = predictions1[[i]]
+		prediction[which(prediction[]<minValue)] = minValue
+		prediction[which(prediction[]>maxValue)] = maxValue
+		index1 = (((min(prediction[],na.rm=T)-minValue)/(maxValue-minValue))*11)+1
+		index2 = (((max(prediction[],na.rm=T)-minValue)/(maxValue-minValue))*11)+1
+		cols = colourScale[index1:index2]
+		plot(prediction, ann=F, axes=F, box=F, legend=F, col=cols)
+		plot(coast_lines, lwd=0.1, col="gray60", add=T)
+		mtext(dataset_names[i], at=-170, line=-10, adj=0, cex=0.6, col="gray30")
+		if (i %in% c(8))
 			{
 				legend_raster = raster(as.matrix(c(minValue,maxValue)))
 				plot(legend_raster, legend.only=T, add=T, col=colourScale, legend.width=0.5, alpha=1, legend.shrink=0.3, smallplot=c(0.910,0.925,0.00,0.55),
